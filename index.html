@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trazzo · Gestión logística</title>
+<meta name="description" content="Trazzo – Sistema de gestión logística y transporte de mercancías (aplicación web progresiva)">
+<!-- ===== PWA: manifest, íconos y metadatos por plataforma ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#12306b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111318" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="application-name" content="Trazzo">
+<link rel="icon" href="favicon.ico" sizes="48x48">
+<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icons/icon-16.png" type="image/png" sizes="16x16">
+<!-- iOS / iPadOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trazzo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- Windows -->
+<meta name="msapplication-TileColor" content="#12306b">
+<meta name="msapplication-TileImage" content="icons/icon-144.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   TRAZZO · V1 "Material" — Material 3 claro, versión web de escritorio
+   ========================================================== */
+:root {
+  --primary: #12306b; --on-primary: #fff;
+  --primary-container: #dbe4ff; --on-primary-container: #0b1f4a;
+  --secondary: #ff8a1f; --secondary-container: #ffe3c7;
+  --surface: #f5f7fc; --surface-1: #fff; --surface-2: #eef1fa;
+  --outline: #d3d7e2; --text: #1a1c22; --muted: #5b6070;
+  --ok: #17803d; --ok-bg: #d9f5e2; --warn: #a65b00; --warn-bg: #ffecd1; --bad: #c62828; --bad-bg: #fde2e2;
+  --radius: 16px; --shadow: 0 1px 2px rgb(16 24 40 / .06), 0 2px 8px rgb(16 24 40 / .06);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #b3c5ff; --on-primary: #0b1f4a; --primary-container: #233d7a; --on-primary-container: #dbe4ff;
+    --secondary-container: #5a3300; --surface: #111318; --surface-1: #1b1e25; --surface-2: #252932;
+    --outline: #3b404c; --text: #e3e5ee; --muted: #a2a8b8;
+    --ok: #7fe0a0; --ok-bg: #11381f; --warn: #ffc27a; --warn-bg: #45290a; --bad: #ff8a8a; --bad-bg: #4a1414;
+    color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 68px; }
+body { margin: 0; font: 15px/1.5 "Roboto Flex", system-ui, "Segoe UI", sans-serif; background: var(--surface); color: var(--text); }
+a { color: inherit; text-decoration: none; }
+svg.i { width: 22px; height: 22px; flex: none; }
+h1, h2, h3, p { margin: 0; }
+.muted { color: var(--muted); }
+.mono { font-family: ui-monospace, "Cascadia Mono", monospace; }
+
+/* ---------- Router ---------- */
+.screen { display: none; }
+.screen:target { display: block; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+.login { position: fixed; inset: 0; z-index: 100; }
+body:has(.screen:target) .login { display: none; }
+body:has(#menu:target) .nav a[href="#menu"],
+body:has(#ruta:target) .nav a[href="#ruta"],
+body:has(#asignar:target) .nav a[href="#asignar"],
+body:has(#monitoreo:target) .nav a[href="#monitoreo"],
+body:has(#personal:target) .nav a[href="#personal"] { background: var(--primary-container); color: var(--on-primary-container); }
+
+/* ---------- Barra superior ---------- */
+.appbar {
+  position: sticky; top: 0; z-index: 20; height: 68px;
+  display: flex; align-items: center; gap: 24px; padding: 0 32px;
+  background: var(--surface-1); border-bottom: 1px solid var(--outline);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.3rem; }
+.brand svg { width: 36px; height: 36px; border-radius: 10px; }
+.nav { display: flex; gap: 4px; flex: 1; }
+.nav a { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 20px; font-weight: 500; color: var(--muted); }
+.nav a:hover { background: var(--surface-2); color: var(--text); }
+.nav svg.i { width: 20px; height: 20px; }
+.appbar__tools { display: flex; align-items: center; gap: 8px; }
+.search { display: flex; align-items: center; gap: 8px; height: 42px; width: 280px; padding: 0 14px; border-radius: 21px; background: var(--surface-2); color: var(--muted); }
+.search input { border: 0; background: none; outline: none; font: inherit; color: var(--text); width: 100%; }
+.icon-btn { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; color: var(--text); }
+.icon-btn:hover { background: var(--surface-2); }
+.me { display: flex; align-items: center; gap: 10px; padding-left: 12px; border-left: 1px solid var(--outline); }
+.me b { display: block; font-size: .9rem; } .me small { color: var(--muted); font-size: .75rem; }
+
+/* ---------- Página ---------- */
+.page { max-width: 1320px; margin: 0 auto; padding: 32px; display: grid; gap: 24px; }
+.page > *, .layout-2 > * { min-width: 0; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.crumbs { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+.crumbs a { color: var(--primary); }
+.page-head h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -.01em; }
+.folio { font: 600 .9rem ui-monospace, monospace; background: var(--secondary-container); padding: 8px 12px; border-radius: 10px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 22px; border-radius: 22px; font-weight: 500; cursor: pointer; border: 0; font-size: .95rem; }
+.btn svg.i { width: 20px; height: 20px; }
+.btn--filled { background: var(--primary); color: var(--on-primary); }
+.btn--filled:hover { box-shadow: 0 4px 12px rgb(18 48 107 / .3); }
+.btn--tonal { background: var(--secondary); color: #2b1600; }
+.btn--outline { border: 1px solid var(--outline); color: var(--primary); background: var(--surface-1); }
+.btn--text { color: var(--primary); background: none; }
+.btn--block { width: 100%; }
+
+.card { background: var(--surface-1); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; min-width: 0; }
+.card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card__head h2 { font-size: 1.05rem; font-weight: 700; }
+.card__head a { color: var(--primary); font-weight: 500; font-size: .9rem; }
+
+/* ---------- Dashboard ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat { display: flex; align-items: center; gap: 16px; }
+.stat__ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 14px; background: var(--primary-container); color: var(--on-primary-container); }
+.stat__ico--o { background: var(--secondary-container); color: var(--warn); }
+.stat__ico--g { background: var(--ok-bg); color: var(--ok); }
+.stat b { display: block; font-size: 1.8rem; line-height: 1.1; }
+.stat small { color: var(--muted); }
+.layout-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
+.stack { display: grid; gap: 24px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.tile { display: grid; gap: 4px; padding: 20px; min-height: 150px; align-content: end; border-radius: var(--radius); background: var(--surface-1); box-shadow: var(--shadow); transition: transform .15s, box-shadow .15s; }
+.tile:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgb(16 24 40 / .12); }
+.tile small { color: var(--muted); }
+.tile__ico { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--surface-2); color: var(--primary); margin-bottom: auto; }
+.tile--primary { background: var(--primary); color: var(--on-primary); }
+.tile--primary small { color: inherit; opacity: .8; }
+.tile--primary .tile__ico { background: rgb(255 255 255 / .15); color: inherit; }
+
+.table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.table th { text-align: left; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--outline); }
+.table td { padding: 14px 12px; border-bottom: 1px solid var(--surface-2); }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: var(--surface-2); }
+.table-wrap { overflow-x: auto; }
+.person { display: flex; align-items: center; gap: 10px; }
+.avatar { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font-weight: 700; font-size: .8rem; flex: none; background: var(--primary-container); color: var(--on-primary-container); }
+.avatar--o { background: var(--secondary-container); color: var(--warn); }
+.avatar--g { background: var(--ok-bg); color: var(--ok); }
+.chip { display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 8px; font-size: .8rem; font-weight: 500; white-space: nowrap; background: var(--surface-2); }
+.chip--ok { background: var(--ok-bg); color: var(--ok); } .chip--warn { background: var(--warn-bg); color: var(--warn); } .chip--bad { background: var(--bad-bg); color: var(--bad); }
+.mini-bar { width: 120px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.mini-bar span { display: block; height: 100%; width: var(--p); background: var(--primary); }
+
+.donut { width: 160px; aspect-ratio: 1; border-radius: 50%; margin: 4px auto 16px; background: conic-gradient(var(--primary) 0 36%, var(--secondary) 36% 48%, var(--ok) 48% 100%); display: grid; place-items: center; }
+.donut::after { content: "47"; display: grid; place-items: center; width: 108px; aspect-ratio: 1; border-radius: 50%; background: var(--surface-1); font-size: 1.8rem; font-weight: 700; }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.legend li { display: flex; align-items: center; gap: 10px; }
+.legend li b { margin-left: auto; }
+.legend i { width: 12px; height: 12px; border-radius: 4px; background: var(--c); }
+.activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.activity li { display: grid; grid-template-columns: auto 1fr; gap: 12px; }
+.activity li::before { content: ""; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: var(--c, var(--primary)); }
+.activity small { display: block; color: var(--muted); }
+
+/* ---------- Formularios ---------- */
+.stepper { list-style: none; margin: 0; padding: 0; display: flex; gap: 12px; }
+.stepper li { flex: 1; display: flex; align-items: center; gap: 10px; font-weight: 500; color: var(--muted); }
+.stepper li:not(:last-child)::after { content: ""; flex: 1; height: 2px; background: var(--outline); }
+.stepper span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); font-weight: 700; }
+.stepper .is-active { color: var(--text); } .stepper .is-active span { background: var(--primary); color: var(--on-primary); }
+.stepper .is-done span { background: var(--ok-bg); color: var(--ok); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+.full { grid-column: 1 / -1; }
+.field { display: grid; gap: 6px; }
+.field span { font-size: .8rem; color: var(--muted); font-weight: 500; }
+.field input, .field select, .field textarea {
+  width: 100%; font: inherit; color: var(--text); background: var(--surface-1);
+  border: 1px solid var(--outline); border-radius: 10px; padding: 11px 14px; min-height: 46px;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--primary); outline-offset: -1px; border-color: transparent; }
+.actions { display: flex; justify-content: flex-end; gap: 10px; }
+.sticky { position: sticky; top: 92px; }
+.kv { margin: 0; display: grid; gap: 12px; }
+.kv div { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px dashed var(--outline); }
+.kv div:last-child { border: 0; padding: 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 500; text-align: right; }
+.route-mini { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-bottom: 18px; }
+.route-mini i { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; border: 3px solid var(--primary); }
+.route-mini i.d { background: var(--secondary); border-color: var(--secondary); }
+.route-mini small { color: var(--muted); display: block; font-size: .75rem; }
+
+.ops { display: grid; gap: 10px; }
+.op { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; border: 2px solid var(--outline); cursor: pointer; }
+.op input { accent-color: var(--primary); width: 18px; height: 18px; margin: 0; }
+.op div:last-of-type { flex: 1; display: grid; }
+.op small { color: var(--muted); }
+.op:has(:checked) { border-color: var(--primary); background: var(--primary-container); }
+
+/* ---------- Monitoreo ---------- */
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar .search { width: 340px; background: var(--surface-1); box-shadow: var(--shadow); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips .chip { cursor: pointer; border: 1px solid var(--outline); background: var(--surface-1); height: 36px; }
+.chips .chip.on { background: var(--primary-container); color: var(--on-primary-container); border-color: transparent; }
+.trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.trip { display: grid; gap: 16px; }
+.trip__head { display: flex; justify-content: space-between; align-items: center; }
+.trip__head b { font-family: ui-monospace, monospace; }
+.trip__route { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.trip__route small { display: block; font-size: .75rem; color: var(--muted); }
+.trip__route b { font-size: 1.05rem; }
+.line { position: relative; height: 6px; border-radius: 3px; background: var(--surface-2); }
+.line span { position: absolute; inset: 0 auto 0 0; width: var(--p); border-radius: 3px; background: var(--primary); }
+.line span::after { content: ""; position: absolute; right: -7px; top: 50%; translate: 0 -50%; width: 14px; height: 14px; border-radius: 50%; background: var(--secondary); border: 3px solid var(--surface-1); }
+.trip__meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; padding-top: 14px; border-top: 1px solid var(--surface-2); }
+.trip__meta dt { font-size: .72rem; color: var(--muted); } .trip__meta dd { margin: 0; font-weight: 500; }
+
+/* ---------- Personal ---------- */
+.roles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.role { display: grid; gap: 6px; }
+.role svg.i { color: var(--primary); width: 28px; height: 28px; }
+.role b { font-size: 1.8rem; line-height: 1; }
+.role small { color: var(--muted); }
+
+/* ---------- Pie de página ---------- */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+.footer { margin-top: auto; background: var(--surface-1); border-top: 1px solid var(--outline); }
+.footer__in { max-width: 1320px; margin: 0 auto; padding: 32px; display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; }
+.footer__about { display: grid; gap: 10px; align-content: start; }
+.footer__about p { color: var(--muted); font-size: .9rem; max-width: 38ch; }
+.footer h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
+.footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: .9rem; }
+.footer ul a:hover { color: var(--primary); }
+.footer ul li { display: flex; align-items: center; gap: 8px; }
+.footer ul svg.i { width: 18px; height: 18px; color: var(--primary); }
+.footer__bottom { border-top: 1px solid var(--surface-2); }
+.footer__bottom div { max-width: 1320px; margin: 0 auto; padding: 16px 32px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); }
+.footer__status { display: inline-flex; align-items: center; gap: 8px; }
+.footer__status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+
+/* ---------- PWA: aviso de instalación y notificaciones ---------- */
+.pwa-banner {
+  position: fixed; left: 50%; bottom: 20px; translate: -50% 0; z-index: 200;
+  display: flex; align-items: center; gap: 14px; width: min(560px, calc(100% - 32px));
+  padding: 14px 14px 14px 16px; border-radius: var(--radius);
+  background: var(--surface-1); color: var(--text); box-shadow: 0 12px 32px rgb(16 24 40 / .22);
+  border: 1px solid var(--outline); animation: fade .25s ease;
+}
+.pwa-banner img { border-radius: 10px; flex: none; }
+.pwa-banner div { flex: 1; display: grid; min-width: 0; }
+.pwa-banner small { color: var(--muted); }
+.pwa-toast {
+  position: fixed; left: 50%; bottom: 20px; translate: -50% 0; z-index: 210;
+  display: flex; align-items: center; gap: 16px; max-width: calc(100% - 32px);
+  padding: 10px 10px 10px 18px; border-radius: 12px;
+  background: #1a1c22; color: #fff; box-shadow: 0 10px 28px rgb(0 0 0 / .3); font-size: .9rem;
+}
+.pwa-toast .btn { color: #b3c5ff; height: 38px; padding: 0 14px; }
+.pwa-banner[hidden], .pwa-toast[hidden], .pwa-banner .btn[hidden] { display: none; }
+.footer__linkbtn { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.footer__linkbtn:hover { color: var(--primary); }
+.footer__linkbtn[hidden] { display: none; }
+@media (max-width: 560px) {
+  .pwa-banner { flex-wrap: wrap; }
+  .pwa-banner div { flex-basis: calc(100% - 60px); }
+  .pwa-banner .btn { flex: 1; }
+}
+
+/* ---------- Login ---------- */
+.login { display: grid; grid-template-columns: 1.1fr 1fr; background: var(--surface-1); }
+.login__hero { display: grid; align-content: end; gap: 16px; padding: 56px; color: #fff;
+  background: radial-gradient(90% 70% at 20% 10%, #2a4c9a, #12306b 60%, #0a1d45); }
+.login__hero h1 { font-size: 3rem; line-height: 1.05; letter-spacing: -.02em; max-width: 12ch; }
+.login__hero p { opacity: .8; max-width: 44ch; font-size: 1.05rem; }
+.devices { display: flex; gap: 10px; margin-top: 12px; }
+.devices span { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 20px; background: rgb(255 255 255 / .12); font-size: .85rem; }
+.login__form { display: grid; align-content: center; gap: 18px; width: 100%; max-width: 420px; margin: auto; padding: 32px; }
+.login__form h2 { font-size: 1.7rem; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1380px) {
+  .appbar .search, .me div { display: none; }
+}
+@media (max-width: 1180px) {
+  .nav a { padding: 0 12px; }
+  .tiles, .stats, .roles { grid-template-columns: repeat(2, 1fr); }
+  .trips { grid-template-columns: repeat(2, 1fr); }
+  .footer__in { grid-template-columns: repeat(3, 1fr); }
+  .footer__about { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .appbar { padding: 0 16px; gap: 12px; }
+  .nav { overflow-x: auto; scrollbar-width: none; }
+  .nav a span, .me div { display: none; }
+  .page { padding: 20px 16px; }
+  .layout-2, .trips { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .sticky { position: static; }
+  .login { grid-template-columns: 1fr; }
+  .login__hero { display: none; }
+  .page-head { flex-wrap: wrap; align-items: flex-start; }
+  .stepper { font-size: .82rem; }
+  .stepper li:not(:last-child)::after { display: none; }
+  .toolbar .search { width: 100%; }
+  .footer__in { grid-template-columns: 1fr 1fr; padding: 24px 16px; gap: 24px; }
+  .footer__bottom div { padding: 14px 16px; }
+}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H16a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h7.5"/></g></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5h12v11H2zM14 9h4l4 4v3h-8"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/></g></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></g></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4M6 13l3-3 3 2 5-5"/></g></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></g></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></g></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></g></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></g></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M15 5 8 12l7 7"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z"/></symbol>
+  <symbol id="i-watch" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 9.5V12l1.5 1"/></g></symbol>
+  <symbol id="i-tv" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="m8 2 4 4 4-4"/></g></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-money" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/></g></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></g></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></g></symbol>
+  <symbol id="i-logo" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#12306b"/><path d="M120 150h272v58H286v184h-60V208H120z" fill="#fff"/><path d="M312 300h80l-40 70z" fill="#ff8a1f"/></symbol>
+</svg>
+
+<header class="appbar">
+  <a class="brand" href="#menu"><svg><use href="#i-logo"/></svg>Trazzo</a>
+  <nav class="nav">
+    <a href="#menu"><svg class="i"><use href="#i-home"/></svg><span>Inicio</span></a>
+    <a href="#ruta"><svg class="i"><use href="#i-route"/></svg><span>Rutas</span></a>
+    <a href="#asignar"><svg class="i"><use href="#i-truck"/></svg><span>Asignación</span></a>
+    <a href="#monitoreo"><svg class="i"><use href="#i-monitor"/></svg><span>Monitoreo</span></a>
+    <a href="#personal"><svg class="i"><use href="#i-users"/></svg><span>Personal</span></a>
+  </nav>
+  <div class="appbar__tools">
+    <label class="search"><svg class="i"><use href="#i-search"/></svg><input type="search" placeholder="Buscar folio, operador…"></label>
+    <a class="icon-btn" href="#monitoreo" aria-label="Notificaciones"><svg class="i"><use href="#i-bell"/></svg></a>
+    <div class="me">
+      <span class="avatar">EH</span>
+      <div><b>Elías Huitzil</b><small>Administrador</small></div>
+      <a class="icon-btn" href="#login" aria-label="Cerrar sesión"><svg class="i"><use href="#i-logout"/></svg></a>
+    </div>
+  </div>
+</header>
+
+<!-- ================= INICIO ================= -->
+<section class="screen" id="menu">
+  <div class="page">
+    <div class="page-head">
+      <div><p class="crumbs">Jueves 25 de septiembre de 2026</p><h1>Hola, Elías</h1></div>
+      <a href="#ruta" class="btn btn--tonal"><svg class="i"><use href="#i-plus"/></svg>Nueva ruta</a>
+    </div>
+
+    <div class="stats">
+      <article class="card stat"><span class="stat__ico"><svg class="i"><use href="#i-truck"/></svg></span><div><b>12</b><small>Viajes en ruta</small></div></article>
+      <article class="card stat"><span class="stat__ico stat__ico--o"><svg class="i"><use href="#i-clock"/></svg></span><div><b>4</b><small>Por asignar</small></div></article>
+      <article class="card stat"><span class="stat__ico stat__ico--g"><svg class="i"><use href="#i-check"/></svg></span><div><b>31</b><small>Entregados este mes</small></div></article>
+      <article class="card stat"><span class="stat__ico"><svg class="i"><use href="#i-money"/></svg></span><div><b>$1.28M</b><small>Flete facturado</small></div></article>
+    </div>
+
+    <nav class="tiles">
+      <a class="tile tile--primary" href="#ruta"><span class="tile__ico"><svg class="i"><use href="#i-route"/></svg></span><strong>Registrar ruta</strong><small>Origen, destino, carga y folio</small></a>
+      <a class="tile" href="#asignar"><span class="tile__ico"><svg class="i"><use href="#i-truck"/></svg></span><strong>Asignar operador</strong><small>Chofer, unidad y póliza</small></a>
+      <a class="tile" href="#monitoreo"><span class="tile__ico"><svg class="i"><use href="#i-monitor"/></svg></span><strong>Monitoreo de viajes</strong><small>Estatus en tiempo real</small></a>
+      <a class="tile" href="#personal"><span class="tile__ico"><svg class="i"><use href="#i-users"/></svg></span><strong>Personal y roles</strong><small>Usuarios y permisos</small></a>
+    </nav>
+
+    <div class="layout-2">
+      <article class="card">
+        <header class="card__head"><h2>Últimos viajes</h2><a href="#monitoreo">Ver todos →</a></header>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Folio</th><th>Ruta</th><th>Operador</th><th>Avance</th><th>Estatus</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">TRZ-0142</td><td>Puebla → CDMX</td><td><div class="person"><span class="avatar">JP</span>Juan Pérez</div></td><td><div class="mini-bar"><span style="--p:62%"></span></div></td><td><span class="chip chip--ok">En ruta</span></td></tr>
+              <tr><td class="mono">TRZ-0141</td><td>Tlaxcala → Toluca</td><td><div class="person"><span class="avatar avatar--o">RS</span>Raúl Sánchez</div></td><td><div class="mini-bar"><span style="--p:35%"></span></div></td><td><span class="chip chip--ok">En ruta</span></td></tr>
+              <tr><td class="mono">TRZ-0140</td><td>Veracruz → Monterrey</td><td class="muted">Sin asignar</td><td><div class="mini-bar"><span style="--p:0%"></span></div></td><td><span class="chip chip--warn">Pendiente</span></td></tr>
+              <tr><td class="mono">TRZ-0138</td><td>León → Tijuana</td><td><div class="person"><span class="avatar avatar--g">AR</span>Ana Ruiz</div></td><td><div class="mini-bar"><span style="--p:81%"></span></div></td><td><span class="chip chip--bad">Retraso</span></td></tr>
+              <tr><td class="mono">TRZ-0139</td><td>Querétaro → Guadalajara</td><td><div class="person"><span class="avatar avatar--g">LM</span>Laura Méndez</div></td><td><div class="mini-bar"><span style="--p:100%"></span></div></td><td><span class="chip">Entregado</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+      <div class="stack">
+        <article class="card">
+          <header class="card__head"><h2>Viajes del mes</h2></header>
+          <div class="donut" role="img" aria-label="47 viajes: 17 en ruta, 6 pendientes, 24 entregados"></div>
+          <ul class="legend">
+            <li><i style="--c:var(--primary)"></i>En ruta<b>17</b></li>
+            <li><i style="--c:var(--secondary)"></i>Pendientes<b>6</b></li>
+            <li><i style="--c:var(--ok)"></i>Entregados<b>24</b></li>
+          </ul>
+        </article>
+        <article class="card">
+          <header class="card__head"><h2>Actividad reciente</h2></header>
+          <ul class="activity">
+            <li style="--c:var(--ok)"><div>Juan Pérez confirmó carga desde Wear OS<small>TRZ-0142 · hace 22 min</small></div></li>
+            <li style="--c:var(--bad)"><div>TRZ-0138 reporta 40 min de retraso<small>Caseta Querétaro · hace 5 min</small></div></li>
+            <li><div>Daniel Barrios registró la ruta TRZ-0143<small>hace 1 h</small></div></li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REGISTRAR RUTA ================= -->
+<section class="screen" id="ruta">
+  <div class="page">
+    <div class="page-head">
+      <div><p class="crumbs"><a href="#menu">Inicio</a> / Rutas</p><h1>Registrar nueva ruta</h1></div>
+      <span class="folio">Folio TRZ-0143</span>
+    </div>
+    <ol class="stepper">
+      <li class="is-active"><span>1</span>Ruta y carga</li>
+      <li><span>2</span>Asignación</li>
+      <li><span>3</span>Confirmación</li>
+    </ol>
+    <div class="layout-2">
+      <div class="stack">
+        <article class="card">
+          <header class="card__head"><h2>Origen y destino</h2></header>
+          <div class="form-grid">
+            <label class="field"><span>Origen</span><input value="Parque Industrial FINSA, Puebla"></label>
+            <label class="field"><span>Destino</span><input placeholder="Ej. Azcapotzalco, CDMX"></label>
+            <label class="field"><span>Enlace GPS de origen</span><input type="url" placeholder="https://maps.google.com/…"></label>
+            <label class="field"><span>Enlace GPS de destino</span><input type="url" placeholder="https://maps.google.com/…"></label>
+          </div>
+        </article>
+        <article class="card">
+          <header class="card__head"><h2>Mercancía</h2></header>
+          <div class="form-grid">
+            <label class="field full"><span>Descripción de la mercancía</span><textarea rows="3" placeholder="Tipo de carga, embalaje, cuidados especiales…"></textarea></label>
+            <label class="field"><span>Peso (kg)</span><input type="number" placeholder="0"></label>
+            <label class="field"><span>Número de unidades</span><input type="number" placeholder="1"></label>
+            <label class="field"><span>Costo de flete (MXN)</span><input type="number" placeholder="0.00"></label>
+            <label class="field"><span>Cliente</span><select><option>Logística del Golfo S.A.</option><option>Cafés de Veracruz</option></select></label>
+          </div>
+        </article>
+        <div class="actions">
+          <a href="#menu" class="btn btn--text">Cancelar</a>
+          <a href="#ruta" class="btn btn--outline">Guardar borrador</a>
+          <a href="#asignar" class="btn btn--filled">Continuar a asignación</a>
+        </div>
+      </div>
+      <aside class="card sticky">
+        <header class="card__head"><h2>Resumen</h2><span class="chip chip--warn">Borrador</span></header>
+        <div class="route-mini"><i></i><div><small>Origen</small>Parque FINSA, Puebla</div><i class="d"></i><div><small>Destino</small>—</div></div>
+        <dl class="kv">
+          <div><dt>Folio</dt><dd class="mono">TRZ-0143</dd></div>
+          <div><dt>Capturó</dt><dd>Daniel Barrios</dd></div>
+          <div><dt>Peso</dt><dd>—</dd></div>
+          <div><dt>Flete</dt><dd>—</dd></div>
+        </dl>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ASIGNACIÓN ================= -->
+<section class="screen" id="asignar">
+  <div class="page">
+    <div class="page-head">
+      <div><p class="crumbs"><a href="#menu">Inicio</a> / <a href="#ruta">Rutas</a> / Asignación</p><h1>Asignar operador y unidad</h1></div>
+      <span class="folio">Folio TRZ-0143</span>
+    </div>
+    <ol class="stepper">
+      <li class="is-done"><span>✓</span>Ruta y carga</li>
+      <li class="is-active"><span>2</span>Asignación</li>
+      <li><span>3</span>Confirmación</li>
+    </ol>
+    <div class="layout-2">
+      <div class="stack">
+        <article class="card">
+          <header class="card__head"><h2>Operador</h2><span class="muted">3 disponibles</span></header>
+          <div class="ops">
+            <label class="op"><input type="radio" name="op" checked><span class="avatar">JP</span><div><strong>Juan Pérez</strong><small>Licencia federal B · 4 viajes este mes</small></div><span class="chip chip--ok">Disponible</span></label>
+            <label class="op"><input type="radio" name="op"><span class="avatar avatar--g">LM</span><div><strong>Laura Méndez</strong><small>Licencia federal E · 6 viajes este mes</small></div><span class="chip chip--ok">Disponible</span></label>
+            <label class="op"><input type="radio" name="op"><span class="avatar avatar--o">RS</span><div><strong>Raúl Sánchez</strong><small>Licencia federal B · En ruta</small></div><span class="chip chip--warn">Libre 14:00</span></label>
+          </div>
+        </article>
+        <article class="card">
+          <header class="card__head"><h2>Unidad</h2></header>
+          <div class="form-grid">
+            <label class="field"><span>Marca</span><select><option>Kenworth T680</option><option>Freightliner Cascadia</option><option>International LT</option></select></label>
+            <label class="field"><span>Año</span><input type="number" value="2022"></label>
+            <label class="field"><span>Placas</span><input value="PUE-45-8K"></label>
+            <label class="field"><span>Peso bruto vehicular</span><input value="36,000 kg"></label>
+            <label class="field full"><span>Póliza de seguro</span><input value="GNP-7781-2026"></label>
+          </div>
+        </article>
+        <div class="actions">
+          <a href="#ruta" class="btn btn--text">Atrás</a>
+          <a href="#monitoreo" class="btn btn--filled"><svg class="i"><use href="#i-check"/></svg>Registrar viaje</a>
+        </div>
+      </div>
+      <aside class="card sticky">
+        <header class="card__head"><h2>Viaje</h2></header>
+        <div class="route-mini"><i></i><div><small>Origen</small>Parque FINSA, Puebla</div><i class="d"></i><div><small>Destino</small>Azcapotzalco, CDMX</div></div>
+        <dl class="kv">
+          <div><dt>Mercancía</dt><dd>24 tarimas de café</dd></div>
+          <div><dt>Peso</dt><dd>18,000 kg</dd></div>
+          <div><dt>Unidades</dt><dd>1</dd></div>
+          <div><dt>Flete</dt><dd>$28,400 MXN</dd></div>
+        </dl>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MONITOREO ================= -->
+<section class="screen" id="monitoreo">
+  <div class="page">
+    <div class="page-head">
+      <div><p class="crumbs"><a href="#menu">Inicio</a> / Monitoreo</p><h1>Monitoreo de viajes</h1></div>
+      <a href="#ruta" class="btn btn--tonal"><svg class="i"><use href="#i-plus"/></svg>Nueva ruta</a>
+    </div>
+    <div class="toolbar">
+      <label class="search"><svg class="i"><use href="#i-search"/></svg><input type="search" placeholder="Buscar folio, operador o destino"></label>
+      <div class="chips"><span class="chip on">Todos · 16</span><span class="chip">En ruta · 12</span><span class="chip">Pendientes · 4</span><span class="chip">Entregados</span></div>
+    </div>
+    <div class="trips">
+      <article class="card trip">
+        <header class="trip__head"><b>TRZ-0142</b><span class="chip chip--ok">En ruta</span></header>
+        <div class="trip__route"><div><small>Origen</small><b>Puebla</b></div><div class="line"><span style="--p:62%"></span></div><div><small>Destino</small><b>CDMX</b></div></div>
+        <dl class="trip__meta"><div><dt>Operador</dt><dd>Juan Pérez</dd></div><div><dt>Unidad</dt><dd>PUE-45-8K</dd></div><div><dt>ETA</dt><dd>15:40</dd></div></dl>
+      </article>
+      <article class="card trip">
+        <header class="trip__head"><b>TRZ-0138</b><span class="chip chip--bad">Retraso</span></header>
+        <div class="trip__route"><div><small>Origen</small><b>León</b></div><div class="line"><span style="--p:81%"></span></div><div><small>Destino</small><b>Tijuana</b></div></div>
+        <dl class="trip__meta"><div><dt>Operador</dt><dd>Ana Ruiz</dd></div><div><dt>Unidad</dt><dd>GTO-88-1P</dd></div><div><dt>ETA</dt><dd>+40 min</dd></div></dl>
+      </article>
+      <article class="card trip">
+        <header class="trip__head"><b>TRZ-0141</b><span class="chip chip--ok">En ruta</span></header>
+        <div class="trip__route"><div><small>Origen</small><b>Tlaxcala</b></div><div class="line"><span style="--p:35%"></span></div><div><small>Destino</small><b>Toluca</b></div></div>
+        <dl class="trip__meta"><div><dt>Operador</dt><dd>Raúl Sánchez</dd></div><div><dt>Unidad</dt><dd>TLX-20-4R</dd></div><div><dt>ETA</dt><dd>17:05</dd></div></dl>
+      </article>
+      <article class="card trip">
+        <header class="trip__head"><b>TRZ-0140</b><span class="chip chip--warn">Pendiente</span></header>
+        <div class="trip__route"><div><small>Origen</small><b>Veracruz</b></div><div class="line"><span style="--p:0%"></span></div><div><small>Destino</small><b>Monterrey</b></div></div>
+        <dl class="trip__meta"><div><dt>Operador</dt><dd>—</dd></div><div><dt>Carga</dt><dd>18 t · Café</dd></div><div><dt>Flete</dt><dd>$42,500</dd></div></dl>
+      </article>
+      <article class="card trip">
+        <header class="trip__head"><b>TRZ-0139</b><span class="chip">Entregado</span></header>
+        <div class="trip__route"><div><small>Origen</small><b>Querétaro</b></div><div class="line"><span style="--p:100%"></span></div><div><small>Destino</small><b>Guadalajara</b></div></div>
+        <dl class="trip__meta"><div><dt>Operador</dt><dd>Laura Méndez</dd></div><div><dt>Unidad</dt><dd>QRO-12-3M</dd></div><div><dt>Entregó</dt><dd>09:12</dd></div></dl>
+      </article>
+      <article class="card trip">
+        <header class="trip__head"><b>TRZ-0137</b><span class="chip">Entregado</span></header>
+        <div class="trip__route"><div><small>Origen</small><b>Toluca</b></div><div class="line"><span style="--p:100%"></span></div><div><small>Destino</small><b>Morelia</b></div></div>
+        <dl class="trip__meta"><div><dt>Operador</dt><dd>Juan Pérez</dd></div><div><dt>Unidad</dt><dd>PUE-45-8K</dd></div><div><dt>Entregó</dt><dd>Ayer</dd></div></dl>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PERSONAL ================= -->
+<section class="screen" id="personal">
+  <div class="page">
+    <div class="page-head">
+      <div><p class="crumbs"><a href="#menu">Inicio</a> / Personal</p><h1>Control de personal y roles</h1></div>
+      <a href="#personal" class="btn btn--filled"><svg class="i"><use href="#i-plus"/></svg>Registrar usuario</a>
+    </div>
+    <div class="roles">
+      <article class="card role"><svg class="i"><use href="#i-shield"/></svg><b>2</b><strong>Administradores</strong><small>Gestionan usuarios y configuración</small></article>
+      <article class="card role"><svg class="i"><use href="#i-box"/></svg><b>5</b><strong>Capturistas</strong><small>Registran viajes y cargas</small></article>
+      <article class="card role"><svg class="i"><use href="#i-truck"/></svg><b>18</b><strong>Operadores</strong><small>Consultan sus viajes asignados</small></article>
+      <article class="card role"><svg class="i"><use href="#i-user"/></svg><b>9</b><strong>Clientes</strong><small>Consultan sus cargas</small></article>
+    </div>
+    <article class="card">
+      <header class="card__head"><h2>Usuarios</h2><label class="search" style="display:flex"><svg class="i"><use href="#i-search"/></svg><input type="search" placeholder="Buscar usuario"></label></header>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Dispositivos</th><th>Estatus</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><span class="avatar">MG</span>Miriam González</div></td><td class="muted">miriam@trazzo.mx</td><td><span class="chip">Administrador</span></td><td>Web · TV</td><td><span class="chip chip--ok">Activo</span></td><td><a class="btn btn--text" href="#personal">Editar</a></td></tr>
+            <tr><td><div class="person"><span class="avatar avatar--o">DB</span>Daniel Barrios</div></td><td class="muted">daniel@trazzo.mx</td><td><span class="chip">Capturista</span></td><td>Web</td><td><span class="chip chip--ok">Activo</span></td><td><a class="btn btn--text" href="#personal">Editar</a></td></tr>
+            <tr><td><div class="person"><span class="avatar avatar--g">JP</span>Juan Pérez</div></td><td class="muted">juan.perez@trazzo.mx</td><td><span class="chip">Operador</span></td><td>Móvil · Wear OS</td><td><span class="chip chip--ok">En ruta</span></td><td><a class="btn btn--text" href="#personal">Editar</a></td></tr>
+            <tr><td><div class="person"><span class="avatar avatar--g">LM</span>Laura Méndez</div></td><td class="muted">laura@trazzo.mx</td><td><span class="chip">Operador</span></td><td>Móvil · Wear OS</td><td><span class="chip chip--ok">Activo</span></td><td><a class="btn btn--text" href="#personal">Editar</a></td></tr>
+            <tr><td><div class="person"><span class="avatar">IA</span>Iván Arcos</div></td><td class="muted">iarcos@golfo.com</td><td><span class="chip">Cliente</span></td><td>Web</td><td><span class="chip">Inactivo</span></td><td><a class="btn btn--text" href="#personal">Editar</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ================= PIE DE PÁGINA ================= -->
+<footer class="footer">
+  <div class="footer__in">
+    <div class="footer__about">
+      <a class="brand" href="#menu"><svg><use href="#i-logo"/></svg>Trazzo</a>
+      <p>Sistema de gestión logística y transporte de mercancías. Coordina viajes, asigna operadores y monitorea unidades.</p>
+    </div>
+    <div>
+      <h3>Módulos</h3>
+      <ul>
+        <li><a href="#ruta">Registrar ruta</a></li>
+        <li><a href="#asignar">Asignar operador</a></li>
+        <li><a href="#monitoreo">Monitoreo de viajes</a></li>
+        <li><a href="#personal">Personal y roles</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Ecosistema</h3>
+      <ul>
+        <li><svg class="i"><use href="#i-monitor"/></svg>Web</li>
+        <li><svg class="i"><use href="#i-tv"/></svg>Android TV</li>
+        <li><svg class="i"><use href="#i-watch"/></svg>Wear OS</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Soporte</h3>
+      <ul>
+        <li><a href="#menu">Centro de ayuda</a></li>
+        <li><a href="#menu">Aviso de privacidad</a></li>
+        <li><a href="#menu">Términos de uso</a></li>
+        <li><button type="button" class="footer__linkbtn" id="pwaFooterInstall" hidden>Instalar la app</button></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div>
+      <span>© 2026 Trazzo · Miriam González, Daniel Barrios, Iván Arcos y Elías Huitzil</span>
+      <span class="footer__status">Sistema operando con normalidad · v1.0</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ================= LOGIN (vista por defecto) ================= -->
+<section class="login" id="login">
+  <div class="login__hero">
+    <h1>Gestión logística sin perder un solo viaje.</h1>
+    <p>Coordina rutas, asigna operadores y monitorea tus unidades desde un solo lugar.</p>
+    <div class="devices"><span><svg class="i"><use href="#i-monitor"/></svg>Web</span><span><svg class="i"><use href="#i-tv"/></svg>Android TV</span><span><svg class="i"><use href="#i-watch"/></svg>Wear OS</span></div>
+  </div>
+  <form class="login__form" action="#menu">
+    <a class="brand" href="#login"><svg><use href="#i-logo"/></svg>Trazzo</a>
+    <div><h2>Iniciar sesión</h2><p class="muted">Ingresa con tu cuenta corporativa</p></div>
+    <label class="field"><span>Correo electrónico</span><input type="email" placeholder="usuario@empresa.mx" autocomplete="username"></label>
+    <label class="field"><span>Contraseña</span><input type="password" placeholder="••••••••" autocomplete="current-password"></label>
+    <a href="#menu" class="btn btn--filled btn--block">Entrar</a>
+    <a href="#login" class="btn btn--text btn--block">¿Olvidaste tu contraseña?</a>
+  </form>
+</section>
+
+<!-- ================= PWA: instalación y avisos ================= -->
+<div class="pwa-banner" id="pwaBanner" role="dialog" aria-live="polite" aria-label="Instalar Trazzo" hidden>
+  <img src="icons/icon-96.png" alt="" width="44" height="44">
+  <div><strong>Instala Trazzo</strong><small id="pwaBannerText">Acceso directo, pantalla completa y uso sin conexión.</small></div>
+  <button type="button" class="btn btn--text" id="pwaDismiss">Ahora no</button>
+  <button type="button" class="btn btn--filled" id="pwaInstall">Instalar</button>
+</div>
+<div class="pwa-toast" id="pwaToast" role="status" aria-live="polite" hidden>
+  <span id="pwaToastText"></span>
+  <button type="button" class="btn btn--text" id="pwaToastAction" hidden></button>
+</div>
+<script src="js/pwa.js" defer></script>
+</body>
+</html>
