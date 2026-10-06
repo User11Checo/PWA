@@ -5,7 +5,7 @@
    - Archivos propios: caché primero y actualización en segundo plano
    - Google Fonts: caché en tiempo de ejecución
    ========================================================== */
-const VERSION = 'trazzo-v1.0.0';
+const VERSION = 'trazzo-v1.0.1';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -55,16 +55,27 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
 
-  // 1) Navegación (abrir la app): red primero, si no hay conexión usa index.html en caché
+  // 1) Navegación (abrir la app): red primero, si no hay conexión usa index.html en caché.
+  //    Solo se guarda como index.html la página de la app (HTML de la raíz o de index.html),
+  //    nunca otros archivos abiertos en una pestaña (por ejemplo manifest.json).
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then(res => {
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then(c => c.put('./index.html', copy));
+          const isAppPage = res.ok
+            && (res.headers.get('content-type') || '').includes('text/html')
+            && (url.pathname.endsWith('/') || url.pathname.endsWith('/index.html'));
+          if (isAppPage) {
+            const copy = res.clone();
+            caches.open(SHELL_CACHE).then(c => c.put('./index.html', copy));
+          }
           return res;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(async () => {
+          const isAppUrl = url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
+          return (isAppUrl ? null : await caches.match(request, { ignoreSearch: true }))
+            || caches.match('./index.html');
+        })
     );
     return;
   }
