@@ -20,9 +20,16 @@ PWA/
 
 Una PWA necesita servirse por `http://localhost` o por `https://`; abrir el archivo con doble clic no registra el service worker.
 
+**Opción rápida (Windows):** doble clic en `iniciar-servidor.cmd`. Abre `http://localhost:5600`.
+
+**Desde la terminal**, dentro de la carpeta del proyecto:
+
 ```bash
 npx http-server . -p 8080 -c-1
 ```
+
+> En **PowerShell** usa `npx.cmd` en lugar de `npx`. Si aparece *"la ejecución de scripts está deshabilitada en este sistema"*, es porque PowerShell bloquea `npx.ps1`; `npx.cmd` no tiene ese problema:
+> `npx.cmd http-server . -p 8080 -c-1`
 
 Abre `http://localhost:8080`. En Chrome o Edge aparece el botón de instalar en la barra de direcciones y el aviso **Instala Trazzo**.
 
